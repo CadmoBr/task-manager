@@ -200,31 +200,12 @@ resource "kubernetes_service" "task_manager" {
 }
 
 resource "null_resource" "task_manager_servicemonitor" {
-  # Força a execução apenas após o Prometheus e o Service estarem prontos
   depends_on = [
     kubernetes_service.task_manager,
     helm_release.kube_prometheus_stack
   ]
 
   provisioner "local-exec" {
-    command = <<-EOT
-      cat <<EOF | kubectl apply -f -
-      apiVersion: monitoring.coreos.com/v1
-      kind: ServiceMonitor
-      metadata:
-        name: task-manager-monitor
-        namespace: app
-        labels:
-          release: kube-prometheus-stack
-      spec:
-        selector:
-          matchLabels:
-            app: task-manager
-        endpoints:
-          - port: http
-            path: /metrics
-            interval: 15s
-      EOF
-    EOT
+    command = "kubectl apply -f ${path.module}/servicemonitor.yaml"
   }
 }
