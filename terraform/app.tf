@@ -199,31 +199,32 @@ resource "kubernetes_service" "task_manager" {
   depends_on = [kubernetes_deployment.task_manager]
 }
 
-resource "kubernetes_manifest" "task_manager_servicemonitor" {
-  manifest = {
-    apiVersion = "monitoring.coreos.com/v1"
-    kind       = "ServiceMonitor"
-    metadata = {
-      name      = "task-manager-monitor"
-      namespace = kubernetes_namespace.app.metadata[0].name
-      labels = {
-        release = "kube-prometheus-stack"
-      }
-    }
-    spec = {
-      selector = {
-        matchLabels = {
-          app = "task-manager"
-        }
-      }
-      endpoints = [
-        {
-          port     = "http"
-          path     = "/metrics"
-          interval = "15s"
-        }
-      ]
-    }
+resource "null_resource" "task_manager_servicemonitor" {
+  # Força a execução apenas após o Prometheus e o Service estarem prontos
+  depends_on = [
+    kubernetes_service.task_manager,
+    helm_release.kube_prometheus_stack
+  ]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      cat <<EOF | kubectl apply -f -
+      apiVersion: monitoring.coreos.com/v1
+      kind: ServiceMonitor
+      metadata:
+        name: task-manager-monitor
+        namespace: app
+        labels:
+          release: kube-prometheus-stack
+      spec:
+        selector:
+          matchLabels:
+            app: task-manager
+        endpoints:
+          - port: http
+            path: /metrics
+            interval: 15s
+      EOF
+    EOT
   }
-  depends_on = [helm_release.kube_prometheus_stack]
 }
