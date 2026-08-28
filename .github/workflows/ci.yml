@@ -41,7 +41,7 @@ jobs:
             --port "3000:30000@server:0" \
             --k3s-arg "--disable=traefik@server:0" \
             --wait
-          k3d kubeconfig merge task-cluster --kubeconfig-switch-context
+          k3d kubeconfig merge task-cluster --kubeconfig-merge-default
 
       - name: Build da Imagem Docker
         run: docker build -t task-manager:latest .

@@ -12,6 +12,8 @@ resource "helm_release" "loki_stack" {
   chart      = "loki-stack"
   namespace  = kubernetes_namespace.monitoring.metadata[0].name
   version    = "2.10.2"
+  timeout    = 900
+  atomic     = true
 
   set {
     name  = "loki.enabled"
@@ -33,6 +35,8 @@ resource "helm_release" "kube_prometheus_stack" {
   chart      = "kube-prometheus-stack"
   namespace  = kubernetes_namespace.monitoring.metadata[0].name
   version    = "56.6.0"
+  timeout    = 900
+  atomic     = true
 
   values = [
     <<-EOT
