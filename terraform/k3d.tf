@@ -5,13 +5,7 @@ resource "null_resource" "k3d_cluster" {
 
   provisioner "local-exec" {
     command = <<-EOT
-      k3d cluster get task-cluster > /dev/null 2>&1 || k3d cluster create task-cluster \
-          --servers 1 \
-          --agents 2 \
-          --port 3000:30001@loadbalancer \
-          --port 3001:30000@loadbalancer \
-          --k3s-arg "--disable=traefik@server:0" \
-          --wait
+      k3d cluster get task-cluster > /dev/null 2>&1 || k3d cluster create task-cluster --servers 1 --agents 2 --port 3000:30001@loadbalancer --port 3001:30000@loadbalancer --k3s-arg "--disable=traefik@server:0" --wait
       
       k3d kubeconfig merge task-cluster --kubeconfig-switch-context
     EOT
