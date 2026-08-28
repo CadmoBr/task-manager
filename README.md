@@ -134,10 +134,35 @@ docker build -t task-manager .
 docker run -p 3000:3000 task-manager
 ```
 
-## Kubernetes, Terraform, CI/CD e Observabilidade
+## Kubernetes, Terraform e Observabilidade
 
-Não fazem parte desta branch. Veja a branch `dev_aula` deste repositório para
-os manifests Kubernetes, o Terraform (k3d + Helm) e o workflow de CI/CD.
+O diretório `terraform/` provisiona um cluster k3d local, constrói e importa a
+imagem da aplicação, instala PostgreSQL e instala via Helm o
+`kube-prometheus-stack` (Prometheus + Grafana) e o `loki-stack` (Loki +
+Promtail). O dashboard da aplicação combina métricas e logs.
+
+### Executar o ambiente k3d
+
+Pré-requisitos: Docker, k3d, kubectl, Helm e Terraform instalados no WSL.
+
+```bash
+terraform -chdir=terraform init
+# O primeiro comando cria o cluster e o kubeconfig antes de o provider
+# Kubernetes/Helm ser inicializado.
+terraform -chdir=terraform apply -target=null_resource.k3d_cluster
+terraform -chdir=terraform apply
+```
+
+A aplicação fica disponível em `http://localhost:3000` e o Grafana em
+`http://localhost:3001` (`admin`/`admin`). Para remover o ambiente:
+
+```bash
+terraform -chdir=terraform destroy
+```
+
+> O primeiro `apply` precisa ser direcionado ao cluster porque o Terraform
+> inicializa os providers antes de executar recursos. Assim, o contexto
+> `k3d-task-cluster` ainda não existe no primeiro planejamento completo.
 
 ## Branches
 

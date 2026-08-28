@@ -1,0 +1,56 @@
+name: CI/CD - Task Manager & Infra
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  validate-and-deploy:
+    name: Build, Infra & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.0"
+
+      - name: Terraform Format & Validate
+        working-directory: ./terraform
+        run: |
+          terraform fmt -check
+          terraform init -backend=false
+          terraform validate
+
+      - name: Setup k3d
+        uses: nolar/setup-k3d-k3s@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Criar Cluster k3d Efêmero
+        run: |
+          k3d cluster create task-cluster \
+            --servers 1 \
+            --agents 2 \
+            --port "8080:8080@loadbalancer" \
+            --port "3000:30000@server:0" \
+            --k3s-arg "--disable=traefik@server:0" \
+            --wait
+          k3d kubeconfig merge task-cluster --kubeconfig-merge-default
+
+      - name: Build da Imagem Docker
+        run: docker build -t task-manager:latest .
+
+      - name: Importar Imagem para o k3d
+        run: k3d image import task-manager:latest -c task-cluster
+
+      - name: Terraform Init & Apply
+        working-directory: ./terraform
+        run: |
+          terraform init
+          terraform apply -auto-approve
